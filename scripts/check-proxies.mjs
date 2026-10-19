@@ -96,6 +96,7 @@ async function main() {
   }
 
   let bad = 0;
+  let checked = 0;
   console.log(`逐个实测代理（${accounts.length} 个账号）：\n`);
   for (const a of accounts) {
     const label = `${a.kind}/${a.name}`;
@@ -103,6 +104,7 @@ async function main() {
       console.log(`- ${label}: 跳过（代理还是占位符，先填真实代理）`);
       continue;
     }
+    checked++;
     const exp = expectedCountry(a.phone);
     const expNote = exp ? `期望 ${exp.code}（${a.phone} 区号 ${exp.prefix}）` : '手机号区号未知，仅测连通性';
     process.stdout.write(`- ${label}: 测速中… `);
@@ -121,7 +123,11 @@ async function main() {
       console.log(`\n  ✗ 出口 ${r.ip}（${r.country}），${expNote}——国家不符，扫码前请换代理！`);
     }
   }
-  console.log(bad ? `\n${bad} 个账号有问题，请处理后再扫码。` : '\n全部通过，可以扫码了。');
+  if (!checked) {
+    console.log('\n都没填真实代理，先填完再测。');
+  } else {
+    console.log(bad ? `\n${bad} 个账号有问题，请处理后再扫码。` : '\n全部通过，可以扫码了。');
+  }
   process.exit(bad ? 1 : 0);
 }
 
