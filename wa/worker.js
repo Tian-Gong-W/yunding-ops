@@ -446,7 +446,7 @@ function startStatusServer() {
             <span style="width:10px;height:10px;border-radius:50%;background:${dot};box-shadow:0 0 10px ${dot}"></span>
             <b style="font-size:18px">${name}</b>
           </div>
-          <div style="font-size:13px;opacity:.8">${s.phone || ''} · ${label}</div>
+          <div style="font-size:13px;opacity:.8">${label}</div>
           ${qr}
           ${linkBlock}
           <div style="font-size:11px;opacity:.55;margin-top:8px">最后活跃: ${s.lastSeen || '-'}</div>
