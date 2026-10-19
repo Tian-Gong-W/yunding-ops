@@ -1,0 +1,33 @@
+# 统一账号注册表
+# - whatsapp 一节：wa-worker 启动时直接读取（ACCOUNTS_YAML）
+# - telegram 一节：建档用，实际账号在 tg-worker 的 Web 控制台导入；
+#   跑 `node scripts/accounts.mjs sync-tg` 可把代理预写入 tg/tg_suite/accounts/<name>/proxy.txt
+
+whatsapp:
+  - name: wa-01
+    phone: "+85261234567"
+    role: 养号/采集 # 养号/采集 | 引流 | 主力承接（主力承接建议物理隔离，此处仅建档）
+    proxy: "socks5://user:pass@1.2.3.4:1080" # 每号独享静态住宅 IP，国家与手机号归属一致；带密码也可（自动本地中转）
+    fingerprintSeed: 10001 # 32 位整数，每号唯一，永久固定（改了=换设备）
+    platform: windows # windows | linux | macos
+    timezone: Asia/Hong_Kong
+    lang: zh-HK
+    status: 待扫码
+
+  - name: wa-02
+    phone: "+85262345678"
+    role: 养号/采集
+    proxy: "socks5://user:pass@5.6.7.8:1080"
+    fingerprintSeed: 20002
+    platform: windows
+    timezone: Asia/Hong_Kong
+    lang: zh-HK
+    status: 待扫码
+
+telegram:
+  - name: tg-01
+    phone: "+85263123456"
+    role: 采集号 # 采集号 | 引流号 | 养号
+    proxy: "socks5://user:pass@9.10.11.12:1080" # 1 个 IP 最多绑 3 个 TG 号
+    session: session # session | tdata（导入方式）
+    status: 待导入

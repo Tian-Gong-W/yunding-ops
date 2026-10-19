@@ -1,0 +1,1 @@
+{"dependencies":{"js-yaml":"^4.1.0"},"description":"yunding-ops 账号注册表工具：校验 + 同步 TG 代理","name":"ops-scripts","type":"module","version":"1.0.0"}

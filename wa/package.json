@@ -1,0 +1,13 @@
+{
+  "dependencies": {
+    "js-yaml": "^4.3.2",
+    "rebrowser-puppeteer": "^25.14.100"
+  },
+  "description": "WhatsApp 多账号隔离 Worker：1 账号 = 1 指纹浏览器进程 + 1 user-data-dir + 1 固定指纹种子 + 1 独立代理",
+  "main": "worker.js",
+  "name": "yunding-wa-worker",
+  "scripts": {
+    "start": "node worker.js"
+  },
+  "version": "1.0.0"
+}

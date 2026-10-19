@@ -1,0 +1,61 @@
+name: yunding-ops
+
+# 一套 compose 拉起全部三个角色：
+#   yunding-bot  Koishi 中控（官方 Bot + 主力承接号），配置沿用 YundingTiangong
+#   tg-worker    TG 个人号矩阵（TG-JIQIREN，FastAPI 控制台 :8000）
+#   wa-worker    WA 隔离浏览器矩阵（fingerprint-chromium，扫码页 :8080）
+
+services:
+  yunding-bot:
+    image: koishijs/koishi:latest
+    container_name: yunding-bot
+    restart: unless-stopped
+    ports:
+      - "5140:5140"
+    volumes:
+      - koishi-data:/koishi
+    environment:
+      - TZ=Asia/Shanghai
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:5140/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  tg-worker:
+    build: ./tg
+    container_name: tg-worker
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - tg-data:/data # SQLite + sessions + accounts（TG-JIQIREN 的 Dockerfile 已设 TG_DB_PATH=/data/tg_data.db）
+    env_file:
+      - .env # TG_API_ID / TG_API_HASH / TG_ADMIN_API_KEY 等，见 .env.example
+    depends_on:
+      - yunding-bot
+
+  wa-worker:
+    build: ./wa
+    container_name: wa-worker
+    restart: unless-stopped
+    shm_size: 2gb
+    ports:
+      - "8080:8080" # 各 WA 账号扫码 + 状态页
+    volumes:
+      - wa-data:/data # profiles/（永不删除）+ qr/
+      - ./chromium:/opt/fingerprint-chromium:ro # 用 wa/fetch-chromium.sh 下载解压到这里
+      - ./accounts/accounts.yaml:/config/accounts.yaml:ro # 统一账号注册表
+    environment:
+      - ACCOUNTS_YAML=/config/accounts.yaml
+      - DATA_DIR=/data
+      - CHROME_PATH=/opt/fingerprint-chromium/chrome
+      - STATUS_PORT=8080
+    depends_on:
+      - yunding-bot
+
+volumes:
+  koishi-data:
+  tg-data:
+  wa-data:

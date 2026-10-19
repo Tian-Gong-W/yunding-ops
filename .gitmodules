@@ -1,0 +1,4 @@
+[submodule "tg"]
+	path = tg
+	url = https://github.com/Tian-Gong-W/TG-JIQIREN.git
+	branch = TG

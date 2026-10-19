@@ -1,0 +1,29 @@
+services:
+  wa-worker:
+    build: .
+    container_name: wa-worker
+    shm_size: 2gb
+    ports:
+      - "8080:8080" # 扫码 + 状态页
+    volumes:
+      - ./wa-data:/data # profiles/（永不删除）+ qr/
+      - ./accounts.json:/config/accounts.json:ro
+      - ./chromium:/opt/fingerprint-chromium:ro # fingerprint-chromium 解压目录
+    environment:
+      - ACCOUNTS_JSON=/config/accounts.json
+      - DATA_DIR=/data
+      - CHROME_PATH=/opt/fingerprint-chromium/chrome
+      - STATUS_PORT=8080
+    restart: unless-stopped
+
+  # ---- 并入 YundingTiangong 的 docker-compose.yml 时追加上面这个 service ----
+  # tg-worker:
+  #   build: ./TG-JIQIREN
+  #   container_name: tg-worker
+  #   ports:
+  #     - "8000:8000"
+  #   volumes:
+  #     - ./tg-data:/data
+  #   env_file:
+  #     - ./TG-JIQIREN/tg_suite/.env
+  #   restart: unless-stopped
