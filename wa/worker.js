@@ -102,6 +102,20 @@ async function captureQR(page, name) {
 
 async function launchAccount(account, idx) {
   await new Promise((r) => setTimeout(r, idx * 20000)); // 错峰启动，避免同时指纹启动被关联
+  // 监督循环：单个账号的任何异常只重建该账号，绝不拖垮整个进程
+  for (;;) {
+    try {
+      await runAccountSession(account, idx);
+    } catch (e) {
+      const msg = String((e && e.message) || e).slice(0, 120);
+      state[account.name].status = 'error: ' + msg;
+      console.log(`[${account.name}] 会话异常，60 秒后重建: ${msg}`);
+    }
+    await new Promise((r) => setTimeout(r, 60000));
+  }
+}
+
+async function runAccountSession(account, idx) {
   const profileDir = path.join(PROFILES_DIR, account.name);
   fs.mkdirSync(profileDir, { recursive: true });
   state[account.name] = {
@@ -140,7 +154,9 @@ async function launchAccount(account, idx) {
     args.push(`--proxy-server=${proxy.server}`);
   }
 
-  const browser = await puppeteer.launch({
+  let browser;
+  try {
+  browser = await puppeteer.launch({
     executablePath: CHROME_PATH,
     headless: false, // 在 xvfb 虚拟显示下以有头模式运行，反检测效果最好
     args,
@@ -182,6 +198,9 @@ async function launchAccount(account, idx) {
       } catch (_) {}
     }
     await new Promise((r) => setTimeout(r, 15000));
+  }
+  } finally {
+    if (browser) await browser.close().catch(() => {});
   }
 }
 
