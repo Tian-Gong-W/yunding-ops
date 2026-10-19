@@ -98,6 +98,162 @@ async function captureQR(page, name) {
   return true;
 }
 
+// ---------------- 号码关联登录（WhatsApp 网页版“Link with phone number”） ----------------
+
+// 区号 -> 国家英文名（WhatsApp 国家选择器搜索用）
+const COUNTRY_NAMES = {
+  '852': 'Hong Kong', '853': 'Macao', '886': 'Taiwan', '86': 'China',
+  '81': 'Japan', '82': 'Korea', '65': 'Singapore', '60': 'Malaysia',
+  '66': 'Thailand', '84': 'Vietnam', '62': 'Indonesia', '63': 'Philippines',
+  '91': 'India', '61': 'Australia', '64': 'New Zealand',
+  '1': 'United States', '44': 'United Kingdom', '33': 'France', '49': 'Germany',
+  '39': 'Italy', '34': 'Spain', '31': 'Netherlands', '41': 'Switzerland',
+  '7': 'Russia', '55': 'Brazil', '52': 'Mexico', '54': 'Argentina',
+  '971': 'United Arab Emirates', '966': 'Saudi Arabia', '20': 'Egypt', '27': 'South Africa',
+  '234': 'Nigeria', '90': 'Turkey',
+};
+
+function splitPhone(phone) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  const codes = Object.keys(COUNTRY_NAMES).sort((a, b) => b.length - a.length);
+  for (const c of codes) {
+    if (digits.startsWith(c) && digits.length > c.length + 5) {
+      return { cc: c, national: digits.slice(c.length), country: COUNTRY_NAMES[c] };
+    }
+  }
+  return { cc: '', national: digits, country: '' };
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// 尝试走“号码关联”流程，成功返回 8 位关联码（如 ABCD-1234），失败返回 null（永不抛错）
+async function tryPhoneLink(page, account) {
+  try {
+    const { national, country } = splitPhone(account.phone);
+    if (!national || national.length < 5) return null;
+
+    // 1. 点 "Link with phone number instead"
+    const opened = await page.evaluate(() => {
+      const els = [...document.querySelectorAll('*')].filter(
+        (el) => el.children.length <= 2 && /link with phone number instead/i.test(el.textContent || '')
+      );
+      if (!els.length) return false;
+      const el = els.sort((a, b) => (a.textContent || '').length - (b.textContent || '').length)[0];
+      let c = el;
+      for (let i = 0; i < 6 && c; i++) {
+        if (c.getAttribute && c.getAttribute('role') === 'button') { c.click(); return true; }
+        c = c.parentElement;
+      }
+      el.click();
+      return true;
+    });
+    if (!opened) return null;
+    await sleep(4000);
+
+    // 2. 如果国家选择器不是目标国家，尝试切换（代理 IP 国家与手机号归属一致时通常默认就是对的）
+    if (country) {
+      await page.evaluate((want) => {
+        // 找电话输入框，回溯容器找国家行按钮
+        const input = document.querySelector('input[aria-label*="phone number" i]');
+        if (!input) return;
+        let box = input;
+        for (let i = 0; i < 7 && box; i++) {
+          box = box.parentElement;
+          if (!box) break;
+          const btn = [...box.querySelectorAll('[role="button"], button')].find((b) => {
+            const t = (b.textContent || '').trim();
+            return t.length > 1 && t.length < 40 && !/next/i.test(t) && box.contains(input);
+          });
+          if (btn && !new RegExp(want, 'i').test(btn.textContent || '')) {
+            btn.click();
+            return;
+          }
+          if (btn) return; // 已经是目标国家
+        }
+      }, country).catch(() => {});
+      await sleep(2500);
+      // 国家列表打开后：搜索 -> 选第一项
+      const picked = await page.evaluate((want) => {
+        const search = [...document.querySelectorAll('input')].find(
+          (x) => /search/i.test(x.placeholder || '') || /search/i.test(x.getAttribute('aria-label') || '')
+        );
+        if (!search) return 'NOSEARCH';
+        search.focus();
+        document.execCommand('selectAll', false, null);
+        document.execCommand('insertText', false, want);
+        return 'SEARCHED';
+      }, country).catch(() => 'ERR');
+      if (picked === 'SEARCHED') {
+        await sleep(2500);
+        await page.evaluate((want) => {
+          const opts = [...document.querySelectorAll('[role="button"], [role="option"], li')].filter(
+            (el) => new RegExp(want, 'i').test(el.textContent || '') && (el.textContent || '').length < 60
+          );
+          if (opts[0]) opts[0].click();
+        }, country).catch(() => {});
+        await sleep(2500);
+      }
+    }
+
+    // 3. 填号码 -> Next
+    const filled = await page.evaluate((num) => {
+      const input = document.querySelector('input[aria-label*="phone number" i]') ||
+        [...document.querySelectorAll('input[type="text"]')].find((x) => x.offsetParent !== null);
+      if (!input) return false;
+      input.focus();
+      document.execCommand('selectAll', false, null);
+      document.execCommand('insertText', false, num);
+      return true;
+    }, national).catch(() => false);
+    if (!filled) return null;
+    await sleep(1500);
+    await page.evaluate(() => {
+      const btns = [...document.querySelectorAll('button, [role="button"]')].filter(
+        (b) => /^next$/i.test((b.textContent || '').trim())
+      );
+      if (btns[0]) btns[0].click();
+    }).catch(() => {});
+    // 4. 轮询读取 8 位关联码（形如 XXXX-XXXX）
+    for (let i = 0; i < 10; i++) {
+      await sleep(3000);
+      const code = await page.evaluate(() => {
+        const texts = [];
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+        let n;
+        while ((n = walker.nextNode())) {
+          const t = n.textContent.trim();
+          if (t.length > 0 && t.length < 60) texts.push(t);
+        }
+        const hit = texts.find((t) => /^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(t));
+        const invalid = texts.some((t) => /valid phone number is required/i.test(t));
+        return hit || (invalid ? 'INVALID' : null);
+      }).catch(() => null);
+      if (code && code !== 'INVALID') return code;
+      if (code === 'INVALID') break;
+    }
+    return null;
+  } catch (_) {
+    return null;
+  } finally {
+    // 回到二维码屏（失败也不影响扫码登录）
+    await page.evaluate(() => {
+      const els = [...document.querySelectorAll('*')].filter(
+        (el) => el.children.length <= 2 && /log in with qr code/i.test(el.textContent || '')
+      );
+      if (els.length) {
+        const el = els.sort((a, b) => (a.textContent || '').length - (b.textContent || '').length)[0];
+        let c = el;
+        for (let i = 0; i < 6 && c; i++) {
+          if (c.getAttribute && c.getAttribute('role') === 'button') { c.click(); return; }
+          c = c.parentElement;
+        }
+        el.click();
+      }
+    }).catch(() => {});
+    await sleep(3000);
+  }
+}
+
 // ---------------- 单账号启动 ----------------
 
 async function launchAccount(account, idx) {
@@ -129,6 +285,8 @@ async function runAccountSession(account, idx) {
     status: 'starting',
     lastSeen: new Date().toISOString(),
     qrPath: null,
+    linkCode: null,
+    linkCodeAt: null,
     phone: account.phone || '',
   };
 
@@ -188,6 +346,7 @@ async function runAccountSession(account, idx) {
         state[account.name].status = 'online';
         state[account.name].lastSeen = new Date().toISOString();
         state[account.name].qrPath = null;
+        state[account.name].linkCode = null;
         const old = path.join(QR_DIR, `${account.name}.png`);
         if (fs.existsSync(old)) fs.unlinkSync(old);
       } else {
@@ -197,6 +356,21 @@ async function runAccountSession(account, idx) {
           await page.reload({ waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {});
         } else {
           console.log(`[${account.name}] 等待扫码: http://localhost:${STATUS_PORT}/qr/${account.name}.png`);
+          // 二维码就绪后，尝试再拿一个“号码关联码”（手机 WhatsApp 用电话号码关联登录）
+          // 失败不影响扫码，静默回落
+          if (!state[account.name].linkCode) {
+            console.log(`[${account.name}] 尝试获取号码关联码…`);
+            const code = await tryPhoneLink(page, account);
+            if (code) {
+              state[account.name].linkCode = code;
+              state[account.name].linkCodeAt = new Date().toISOString();
+              console.log(`[${account.name}] 号码关联码: ${code}`);
+              // 回到二维码屏后重新截图（二维码会刷新）
+              await captureQR(page, account.name).catch(() => {});
+            } else {
+              console.log(`[${account.name}] 号码关联码获取失败，仅二维码可用`);
+            }
+          }
         }
       }
     } catch (e) {
@@ -258,6 +432,13 @@ function startStatusServer() {
                <img src="${s.qrPath}?t=${Date.now()}" width="230" style="display:block"/></div>
              <div style="font-size:12px;opacity:.75">手机 WhatsApp → 设置 → 已关联设备 → 扫码</div>`
           : `<div style="font-size:13px;opacity:.7;margin:14px 0;min-height:60px">${waiting ? '二维码加载中…' : String(s.status).slice(0, 80)}</div>`;
+        const linkBlock = s.linkCode
+          ? `<div style="background:#fff;color:#0f172a;border-radius:12px;padding:14px 18px;margin:10px auto;max-width:300px">
+               <div style="font-size:11px;opacity:.6;margin-bottom:6px">号码关联码（免扫码）</div>
+               <div style="font-size:32px;font-weight:800;letter-spacing:5px;font-family:monospace">${s.linkCode}</div>
+               <div style="font-size:11px;opacity:.6;margin-top:6px">手机 WhatsApp → 已关联设备 → 用电话号码关联 → 输入此码</div>
+             </div>`
+          : '';
         return `<div style="background:rgba(255,255,255,.08);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
           border:1px solid rgba(255,255,255,.16);border-radius:18px;padding:22px;margin:12px;
           display:inline-block;vertical-align:top;text-align:center;min-width:300px;box-shadow:0 8px 32px rgba(0,0,0,.35)">
@@ -267,6 +448,7 @@ function startStatusServer() {
           </div>
           <div style="font-size:13px;opacity:.8">${s.phone || ''} · ${label}</div>
           ${qr}
+          ${linkBlock}
           <div style="font-size:11px;opacity:.55;margin-top:8px">最后活跃: ${s.lastSeen || '-'}</div>
         </div>`;
       })
