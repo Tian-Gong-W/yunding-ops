@@ -8,11 +8,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpango-1.0-0 libcairo2 libatspi2.0-0 \
  && rm -rf /var/lib/apt/lists/*
 
+# sing-box：把 vless:// 代理转成 127.0.0.1 socks5，供 Chromium 使用
+# （vless-bridge.mjs 在容器启动时按账号生成配置并起 sing-box）
+RUN SINGBOX_VER=$(wget -qO- https://api.github.com/repos/SagerNet/sing-box/releases/latest \
+      | grep -o '"tag_name": *"[^"]*"' | head -1 | cut -d'"' -f4) \
+ && echo "sing-box ${SINGBOX_VER}" \
+ && wget -qO /tmp/sing-box.tar.gz \
+      "https://github.com/SagerNet/sing-box/releases/download/${SINGBOX_VER}/sing-box-${SINGBOX_VER#v}-linux-amd64.tar.gz" \
+ && tar -xzf /tmp/sing-box.tar.gz -C /tmp \
+ && mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box \
+ && chmod +x /usr/local/bin/sing-box \
+ && rm -rf /tmp/sing-box* \
+ && sing-box version
+
 WORKDIR /app
 COPY package.json ./
 RUN npm install --omit=dev
 COPY worker.js ./
 COPY proxy-relay.js ./
+COPY vless-bridge.mjs ./
 COPY assets/ ./assets/
 COPY entrypoint.sh ./
 RUN chmod +x entrypoint.sh

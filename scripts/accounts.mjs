@@ -24,13 +24,31 @@ function load() {
 function checkProxy(p, label) {
   const errs = [];
   if (!p) return errs;
+  // vless（含 base64 混淆形式）走专用校验：new URL() 会把混淆 host 小写化破坏 base64
+  if (/^vless:/i.test(p)) {
+    const m = String(p).match(/^vless:\/\/([^?]+)(?:\?.*)?$/);
+    if (!m) return [`${label}: vless 链接格式非法`];
+    const auth = m[1];
+    let ok = false;
+    if (auth.includes('@')) {
+      const hp = auth.slice(auth.lastIndexOf('@') + 1);
+      ok = /^[^:]+:\d+$/.test(hp);
+    } else {
+      try {
+        const dec = Buffer.from(auth, 'base64').toString('utf8');
+        ok = /^[^:]*:[0-9a-fA-F-]{36}@[^:]+:\d+$/.test(dec);
+      } catch { ok = false; }
+    }
+    if (!ok) errs.push(`${label}: vless 地址非法（uuid/host/port 缺失或损坏）`);
+    return errs;
+  }
   let u;
   try {
     u = new URL(p);
   } catch {
     return [`${label}: 代理地址格式非法`];
   }
-  if (!['http:', 'https:', 'socks5:', 'socks:'].includes(u.protocol)) errs.push(`${label}: 不支持的代理协议 ${u.protocol}`);
+  if (!['http:', 'https:', 'socks5:', 'socks:', 'vless:'].includes(u.protocol)) errs.push(`${label}: 不支持的代理协议 ${u.protocol}`);
   if (!u.hostname || !u.port) errs.push(`${label}: 代理缺少 host 或 port`);
   return errs;
 }

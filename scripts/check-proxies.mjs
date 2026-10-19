@@ -104,6 +104,10 @@ async function main() {
       console.log(`- ${label}: 跳过（代理还是占位符，先填真实代理）`);
       continue;
     }
+    if (/^vless:/i.test(a.proxy || '')) {
+      console.log(`- ${label}: 跳过（vless 需经 sing-box 桥接，curl 测不了；看 wa-worker 启动日志确认）`);
+      continue;
+    }
     checked++;
     const exp = expectedCountry(a.phone);
     const expNote = exp ? `期望 ${exp.code}（${a.phone} 区号 ${exp.prefix}）` : '手机号区号未知，仅测连通性';
