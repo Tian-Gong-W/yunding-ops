@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>雲頂天宮 · Telegram 控制台演示</title>
+  <style>
+    :root { font-family: "Noto Sans SC", "PingFang SC", system-ui, sans-serif; color: #fff; }
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; margin: 0; }
+    body { min-height: 100vh; background: #081c35 url('/assets/yun-ding.jpg?v=956ec5f') center/cover fixed no-repeat; }
+    body::before { content: ""; position: fixed; inset: 0; background: linear-gradient(135deg, rgba(0,24,52,.55), rgba(0,112,130,.35)); z-index: -1; }
+    .wrap { width: min(1100px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 56px; }
+    .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .brand { width: fit-content; padding: 9px 20px; border: 1px solid rgba(255,255,255,.75); border-radius: 999px; background: rgba(255,255,255,.16); font-size: 18px; font-weight: 900; letter-spacing: 2px; text-shadow: 0 0 5px #fff, 0 0 14px rgba(180,255,255,.8); backdrop-filter: blur(12px); }
+    .back { color: #fff; text-decoration: none; font-weight: 700; padding: 9px 15px; border-radius: 999px; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.35); }
+    .hero { text-align: center; padding: clamp(48px, 10vw, 100px) 0 36px; }
+    h1 { margin: 0; font-size: clamp(2.2rem, 6vw, 5rem); line-height: 1.15; font-weight: 900; letter-spacing: 2px; text-shadow: 0 0 6px #fff, 0 0 18px rgba(180,255,255,.8), 0 5px 20px rgba(0,30,60,.35); }
+    .sub { margin: 18px auto 0; max-width: 720px; font-size: clamp(1rem, 2vw, 1.25rem); line-height: 1.8; color: rgba(255,255,255,.92); }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .card { min-height: 150px; padding: 20px; border: 1px solid rgba(255,255,255,.62); border-radius: 24px; background: rgba(240,253,250,.2); box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 16px 35px rgba(0,20,50,.2); backdrop-filter: blur(18px); }
+    .card h2 { margin: 0 0 10px; font-size: 20px; }
+    .card p { margin: 0; color: rgba(255,255,255,.85); line-height: 1.7; }
+    .demo-note { margin: 22px 0 0; padding: 15px 18px; border-radius: 18px; background: rgba(15,23,42,.38); color: rgba(255,255,255,.9); text-align: center; }
+    footer { padding-top: 42px; text-align: center; color: rgba(255,255,255,.72); font-size: 13px; }
+    @media (max-width: 680px) { body { background-attachment: scroll; background-position: 62% center; } .wrap { width: min(100% - 20px, 560px); padding-top: 16px; } .top { align-items: flex-start; } .brand { font-size: 15px; padding: 8px 15px; } .back { font-size: 13px; padding: 8px 12px; } .hero { padding: 62px 0 28px; } h1 { font-size: clamp(2rem, 10vw, 3rem); } .sub { margin-top: 16px; font-size: 15px; line-height: 1.7; } .grid { grid-template-columns: 1fr; gap: 10px; } .card { min-height: 0; padding: 17px; } .card h2 { font-size: 18px; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top"><div class="brand">雲頂天宮</div><a class="back" href="/">进入控制台</a></div>
+    <section class="hero"><h1>我将在美好的时间遇到你</h1><p class="sub">Telegram 矩阵营销 · 关键词商机雷达 · 自动截流获客 · TData/Session 批量纳管</p></section>
+    <section class="grid">
+      <article class="card"><h2>账号中心</h2><p>统一管理 Telegram 账号、Session 与账号状态。</p></article>
+      <article class="card"><h2>商机雷达</h2><p>关键词监听、排除词过滤与 Bot 实时通知。</p></article>
+      <article class="card"><h2>营销触达</h2><p>批量群发、精准私信与频道运营工具。</p></article>
+      <article class="card"><h2>数据中心</h2><p>线索库、历史消息归档和可检索数据。</p></article>
+      <article class="card"><h2>系统设置</h2><p>安全鉴权、运行环境与管理入口。</p></article>
+    </section>
+    <div class="demo-note">这是公开演示页面，不连接真实账号、不读取生产数据，也不需要登录。</div>
+    <footer>© 2026 雲頂天宮 · Telegram 智能矩阵与商机中枢</footer>
+  </div>
+</body>
+</html>
+

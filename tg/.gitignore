@@ -1,0 +1,34 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environment
+venv/
+tg_suite/venv/
+tg_suite/.deps_ok
+.env
+
+# Data & Sessions (protect runtime session credentials from being uploaded)
+tg_suite/data/sessions/*.session
+tg_suite/data/sessions/*.json
+tg_suite/data/tdata/*
+tg_suite/data/leads.db
+tg_suite/data/uploads/*
+
+# Logs
+*.log
+server.log
+
+# Build & Dist
+build/
+dist/
+*.spec
+
+# IDE / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

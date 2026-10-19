@@ -1,0 +1,13 @@
+{
+  "name": "topmen-dashboard-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HTTPS proxy for the TopMen dashboard hosted on the persistent server",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "http-proxy": "^1.18.1"
+  }
+}

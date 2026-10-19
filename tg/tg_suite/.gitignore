@@ -1,0 +1,26 @@
+__pycache__/
+*.py[cod]
+*.db
+*.sqlite*
+*.sqlite-wal
+*.sqlite-shm
+*.session
+*.session-journal
+.env
+.env.*
+!.env.example
+
+# Runtime account/session assets and generated exports
+accounts/
+sessions/
+uploads/
+exports/
+
+# Local archives and desktop runtime binaries
+*.zip
+*.exe
+
+# Test / tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
