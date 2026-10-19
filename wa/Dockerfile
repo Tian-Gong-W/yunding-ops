@@ -12,6 +12,9 @@ WORKDIR /app
 COPY package.json ./
 RUN npm install --omit=dev
 COPY worker.js ./
+COPY proxy-relay.js ./
+COPY entrypoint.sh ./
+RUN chmod +x entrypoint.sh
 
 ENV CHROME_PATH=/opt/fingerprint-chromium/chrome \
     ACCOUNTS_JSON=/config/accounts.json \
@@ -19,5 +22,6 @@ ENV CHROME_PATH=/opt/fingerprint-chromium/chrome \
     STATUS_PORT=8080
 
 EXPOSE 8080
-# xvfb-run 提供虚拟显示，浏览器以有头模式运行（反自动化检测效果最好）
-CMD ["xvfb-run", "-a", "node", "worker.js"]
+# entrypoint.sh：直接起 Xvfb（轮询 socket 等就绪）再 exec node，
+# 不用 xvfb-run（它在容器 PID 1 下等 Xvfb 的 SIGUSR1 会卡死）
+CMD ["./entrypoint.sh"]
