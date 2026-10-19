@@ -63,12 +63,20 @@ async function dialSocks5(proxyUrl, targetHost, targetPort) {
 }
 
 // 在 127.0.0.1:listPort 起一个无密码的 HTTP CONNECT 中转
+// 返回 { server, close }：close 会先销毁所有隧道再关监听，避免 EADDRINUSE
 async function startLocalRelay(proxyUrl, listenPort) {
+  const sockets = new Set();
+  const track = (s) => {
+    sockets.add(s);
+    s.on('close', () => sockets.delete(s));
+  };
   const server = http.createServer();
+  server.on('connection', track);
   server.on('connect', async (req, clientSocket, head) => {
     try {
       const [host, port] = req.url.split(':');
       const upstream = await dialSocks5(proxyUrl, host, Number(port || 443));
+      track(upstream);
       clientSocket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
       if (head && head.length) upstream.write(head);
       clientSocket.pipe(upstream).pipe(clientSocket);
@@ -85,7 +93,14 @@ async function startLocalRelay(proxyUrl, listenPort) {
     server.once('error', reject);
     server.listen(listenPort, '127.0.0.1', resolve);
   });
-  return server;
+  return {
+    server,
+    async close() {
+      for (const s of sockets) s.destroy();
+      sockets.clear();
+      await new Promise((res) => server.close(res));
+    },
+  };
 }
 
 module.exports = { startLocalRelay };

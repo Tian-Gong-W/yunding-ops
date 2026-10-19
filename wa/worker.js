@@ -154,7 +154,7 @@ async function runAccountSession(account, idx) {
     args.push(`--proxy-server=${proxy.server}`);
   } else if (proxy && proxy.hasAuth && (proxy.scheme === 'socks5' || proxy.scheme === 'socks')) {
     const relayPort = 18000 + idx;
-    await startLocalRelay(account.proxy, relayPort);
+    relay = await startLocalRelay(account.proxy, relayPort);
     args.push(`--proxy-server=http://127.0.0.1:${relayPort}`);
     console.log(`[${account.name}] socks5 密码代理已启用本地中转 127.0.0.1:${relayPort}`);
   } else if (proxy && proxy.hasAuth) {
@@ -162,6 +162,7 @@ async function runAccountSession(account, idx) {
   }
 
   let browser;
+  let relay = null;
   try {
   browser = await puppeteer.launch({
     executablePath: CHROME_PATH,
@@ -208,6 +209,7 @@ async function runAccountSession(account, idx) {
   }
   } finally {
     if (browser) await browser.close().catch(() => {});
+    if (relay) await relay.close().catch(() => {});
   }
 }
 
