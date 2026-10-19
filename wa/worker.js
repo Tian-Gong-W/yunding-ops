@@ -133,6 +133,8 @@ async function runAccountSession(account, idx) {
   };
 
   const proxy = parseProxy(account.proxy);
+  let browser;
+  let relay = null;
   const args = [
     `--fingerprint=${account.fingerprintSeed}`,
     `--user-data-dir=${profileDir}`,
@@ -161,8 +163,6 @@ async function runAccountSession(account, idx) {
     args.push(`--proxy-server=${proxy.server}`);
   }
 
-  let browser;
-  let relay = null;
   try {
   browser = await puppeteer.launch({
     executablePath: CHROME_PATH,
