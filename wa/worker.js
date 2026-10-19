@@ -118,6 +118,13 @@ async function launchAccount(account, idx) {
 async function runAccountSession(account, idx) {
   const profileDir = path.join(PROFILES_DIR, account.name);
   fs.mkdirSync(profileDir, { recursive: true });
+  // 清理上次崩溃残留的 Chromium 单例锁（本设计保证一个账号同一时间只有一个浏览器实例，
+  // 且每次重建前旧实例已在 finally 中 close，因此这里删除是安全的）
+  for (const f of ['SingletonSocket', 'SingletonLock', 'SingletonCookie', 'DevToolsActivePort']) {
+    try {
+      fs.rmSync(path.join(profileDir, f), { force: true });
+    } catch (_) {}
+  }
   state[account.name] = {
     status: 'starting',
     lastSeen: new Date().toISOString(),
