@@ -3,22 +3,23 @@
 每个 WA 账号 = 独立浏览器进程 + 独立 `user-data-dir` + 固定指纹种子 + 独立代理 IP。
 扫码一次，长期保活，**永不清理 profile 目录**。
 
-## 快速开始
+## 快速开始（在 yunding-ops 根目录操作）
 
 ```bash
-cd yunding-wa-worker
-chmod +x fetch-chromium.sh
+# 1. 下载指纹浏览器（默认最新稳定版，开箱即用；解压到 ./chromium/）
+chmod +x wa/fetch-chromium.sh
+./wa/fetch-chromium.sh
 
-# 1. 下载指纹浏览器（到 Release 页复制 Linux TAR.XZ 直链）
-./fetch-chromium.sh "<直链>"
-
-# 2. 写账号配置
-cp accounts.example.json accounts.json
-# 按下面说明填每个号的 proxy / fingerprintSeed / timezone
+# 2. 账号配置（统一注册表）
+vim accounts/accounts.yaml   # 填每个号的 proxy / fingerprintSeed / timezone
+node scripts/accounts.mjs validate
 
 # 3. 启动
-docker compose -f docker-compose.wa.yml up -d --build
-docker logs -f wa-worker
+docker compose up -d --build
+docker compose logs -f wa-worker
+
+# 4. 打开 http://服务器IP:8080，逐个扫码登录
+```
 
 # 4. 打开 http://服务器IP:8080，逐个扫码登录
 ```
