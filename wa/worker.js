@@ -223,6 +223,17 @@ function startStatusServer() {
       res.end(JSON.stringify(state, null, 2));
       return;
     }
+    if (url.pathname === '/assets/yun-ding.jpg') {
+      const f = path.join(__dirname, 'assets', 'yun-ding.jpg');
+      if (fs.existsSync(f)) {
+        res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=86400' });
+        fs.createReadStream(f).pipe(res);
+      } else {
+        res.writeHead(404);
+        res.end('no bg');
+      }
+      return;
+    }
     const m = url.pathname.match(/^\/qr\/([A-Za-z0-9_-]+)\.png$/);
     if (m) {
       const f = path.join(QR_DIR, `${m[1]}.png`);
@@ -235,20 +246,61 @@ function startStatusServer() {
       }
       return;
     }
-    // 首页：账号状态 + 二维码
+    // 首页：雲頂天宮 风格（与 tg.tian-gong.cc 同款背景 + 毛玻璃卡片）
     const cards = Object.entries(state)
       .map(([name, s]) => {
-        const dot = s.status === 'online' ? '🟢' : s.status === 'waiting_scan' ? '🟡' : '🔴';
-        const qr = s.qrPath ? `<img src="${s.qrPath}?t=${Date.now()}" width="220"/><br/>` : '';
-        return `<div style="border:1px solid #ccc;border-radius:8px;padding:12px;margin:12px;display:inline-block;vertical-align:top;text-align:center">
-          <b>${dot} ${name}</b><br/><small>${s.phone || ''}</small><br/><small>${s.status}</small><br/>${qr}
-          <small>最后活跃: ${s.lastSeen || '-'}</small></div>`;
+        const online = s.status === 'online';
+        const waiting = s.status === 'waiting_scan';
+        const dot = online ? '#22c55e' : waiting ? '#f59e0b' : '#ef4444';
+        const label = online ? '在线' : waiting ? '等待扫码' : '异常/启动中';
+        const qr = s.qrPath
+          ? `<div style="background:#fff;border-radius:12px;padding:10px;display:inline-block;margin:10px 0">
+               <img src="${s.qrPath}?t=${Date.now()}" width="230" style="display:block"/></div>
+             <div style="font-size:12px;opacity:.75">手机 WhatsApp → 设置 → 已关联设备 → 扫码</div>`
+          : `<div style="font-size:13px;opacity:.7;margin:14px 0;min-height:60px">${waiting ? '二维码加载中…' : String(s.status).slice(0, 80)}</div>`;
+        return `<div style="background:rgba(255,255,255,.08);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+          border:1px solid rgba(255,255,255,.16);border-radius:18px;padding:22px;margin:12px;
+          display:inline-block;vertical-align:top;text-align:center;min-width:300px;box-shadow:0 8px 32px rgba(0,0,0,.35)">
+          <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:6px">
+            <span style="width:10px;height:10px;border-radius:50%;background:${dot};box-shadow:0 0 10px ${dot}"></span>
+            <b style="font-size:18px">${name}</b>
+          </div>
+          <div style="font-size:13px;opacity:.8">${s.phone || ''} · ${label}</div>
+          ${qr}
+          <div style="font-size:11px;opacity:.55;margin-top:8px">最后活跃: ${s.lastSeen || '-'}</div>
+        </div>`;
       })
       .join('');
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(`<html><head><meta http-equiv="refresh" content="30"><title>WA 账号状态</title></head>
-      <body style="font-family:sans-serif"><h2>WhatsApp 账号状态（${Object.keys(state).length} 个）</h2>
-      <p>🟢 在线 &nbsp; 🟡 等待扫码 &nbsp; 🔴 异常/启动中 — 页面每 30 秒自动刷新</p>${cards || '<p>启动中…</p>'}</body></html>`);
+    res.end(`<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+      <meta http-equiv="refresh" content="30"><title>雲頂天宮 · WhatsApp 账号矩阵</title>
+      <style>
+        * { box-sizing: border-box; }
+        body { font-family: "Noto Sans SC", system-ui, -apple-system, sans-serif; margin: 0; padding: 0;
+          min-height: 100vh; color: #f1f5f9; position: relative; isolation: isolate; }
+        body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+          background-color: #081c35;
+          background-image: linear-gradient(rgba(0,29,54,.34), rgba(0,76,96,.42)), url('/assets/yun-ding.jpg');
+          background-size: cover; background-position: center center; background-repeat: no-repeat; }
+        .wrap { max-width: 1100px; margin: 0 auto; padding: 40px 20px; text-align: center; }
+        .badge { display: inline-block; font-size: 12px; letter-spacing: 4px; padding: 6px 18px 6px 22px;
+          border: 1px solid rgba(255,255,255,.3); border-radius: 999px; background: rgba(255,255,255,.08);
+          backdrop-filter: blur(8px); margin-bottom: 16px; }
+        h1 { font-size: 30px; margin: 0 0 8px; font-weight: 700; text-shadow: 0 2px 16px rgba(0,0,0,.5); }
+        .sub { font-size: 13px; opacity: .75; margin-bottom: 26px; }
+        .legend { font-size: 12px; opacity: .7; margin-bottom: 20px; }
+        .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin: 0 4px 0 12px; }
+      </style></head>
+      <body><div class="wrap">
+        <div class="badge">雲頂天宮</div>
+        <h1>WhatsApp 账号矩阵</h1>
+        <div class="sub">1 号 1 指纹浏览器 · 1 独立代理 IP · 扫码即上线</div>
+        <div class="legend"><span class="dot" style="background:#22c55e"></span>在线
+          <span class="dot" style="background:#f59e0b"></span>等待扫码
+          <span class="dot" style="background:#ef4444"></span>异常/启动中
+          <span style="margin-left:12px">页面每 30 秒自动刷新</span></div>
+        <div>${cards || '<p>启动中…</p>'}</div>
+      </div></body></html>`);
   });
   server.listen(STATUS_PORT, () => console.log(`状态页: http://localhost:${STATUS_PORT}`));
 }

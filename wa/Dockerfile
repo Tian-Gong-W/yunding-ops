@@ -13,6 +13,7 @@ COPY package.json ./
 RUN npm install --omit=dev
 COPY worker.js ./
 COPY proxy-relay.js ./
+COPY assets/ ./assets/
 COPY entrypoint.sh ./
 RUN chmod +x entrypoint.sh
 
